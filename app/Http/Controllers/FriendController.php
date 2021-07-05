@@ -15,29 +15,63 @@ class FriendController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function __construct()
     {
-        $friendList = $this->getAcceptedFriendList();
+        $this->middleware('auth');
+    }
+
+    public function index(Request $request)
+    {
+        $friendList = $this->getAcceptedFriendList($request);
         $friendRequestList = $this->getFriendRequestList();
-        $userList = $this->users();
         return view('dashboard')->with([
             'friendList' => $friendList,
-            'friendRequestList' => $friendRequestList,
-            'userList' => $userList
+            'friendRequestList' => $friendRequestList
         ]);
     }
 
-    public function users()
+
+    public function sendInvitation(Request $request)
     {
-        return User::select('id', 'first_name', 'last_name', 'email')->whereNotIn('id', [Auth::user()->id])->get();
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+        $email = $request->email;
+        $user = Auth::user();
+        $recipient = User::where('email', $email)->first();
+        if (!empty($recipient)) {
+            if (!$user->hasSentFriendRequestTo($recipient)) {
+                $user->befriend($recipient);
+            }
+        }
+        event(new InviteEvent($email));
+        Alert::toast('Friend request send', 'success');
+
+        return redirect()->route('dashboard');
     }
 
-    public function getAcceptedFriendList($perPage = 20)
+
+    public function getAcceptedFriendList($request)
     {
+        $search = '';
+        if ($request->has('query')) {
+            $search = $request->get('query');
+        }
+
         $user = Auth::user();
-        $list = $user->getFriends($perPage, '', ['id', 'first_name', 'last_name', 'email']);
-        return $list;
+        $friends = $user->friends()->where('status', 'accepted')->get();
+        if (count($friends) > 0) {
+            $ids = $friends->pluck('sender_id')->merge($friends->pluck('recipient_id'))->unique();
+        } else {
+            $ids = [];
+        }
+
+        return User::whereIn('id', $ids)->whereNotIn('id', [$user->id])
+            ->when($search, function ($query, $search) {
+                return $query->where('first_name', 'like', '%' . $search . '%');
+            })->paginate();
     }
+
 
     public function getFriendRequestList()
     {
@@ -53,45 +87,29 @@ class FriendController extends Controller
         return $result;
     }
 
-    public function sendRequest(int $id)
-    {
-        try {
-            $user = Auth::user();
-            $recipient = User::findOrFail($id);
-            if (!$user->hasSentFriendRequestTo($recipient)) {
-                $user->befriend($recipient);
-                event(new InviteEvent($recipient));
-                $result = ['status' => 200, 'type' => 'success', 'message' => 'Request has been sent'];
-            } else {
-                $result = ['status' => 200, 'type' => 'info', 'message' => 'Request has been already sent'];
-            }
-        } catch (\Exception $exception) {
-            $result = [
-                'status' => $exception->getCode(),
-                'type' => 'error',
-                'message' => $exception->getMessage()
-            ];
-        }
-
-        return $result;
-    }
 
     public function acceptRequest(Request $request, int $id)
     {
-        if (!$request->hasValidSignature()) {
-            abort(401);
-        }
-        try {
-            $user = Auth::user();
-            $sender = User::findOrFail($id);
-            $user->acceptFriendRequest($sender);
-            Alert::toast('Friend request accepted', 'success');
-        } catch (\Exception $exception) {
-            Alert::toast('Sorry, Friend request cannot accepted', 'error');
-        }
+        $user = Auth::user();
+        $sender = User::findOrFail($id);
 
-        return redirect()->route('dashboard');
+        if ($request->ajax()) {
+            $user->acceptFriendRequest($sender);
+        } else {
+            if (!$request->hasValidSignature()) {
+                abort(401);
+            }
+            try {
+                $user->acceptFriendRequest($sender);
+                Alert::toast('Friend request accepted', 'success');
+            } catch (\Exception $exception) {
+                Alert::toast('Sorry, Friend request cannot accepted', 'error');
+            }
+
+            return redirect()->route('dashboard');
+        }
     }
+
 
     public function denyRequest(int $id)
     {
@@ -99,12 +117,12 @@ class FriendController extends Controller
             $user = Auth::user();
             $sender = User::findOrFail($id);
             $user->denyFriendRequest($sender);
-            $result = ['status' => 200];
+            $response = response()->json(200);
         } catch (\Exception $exception) {
-            $result = ['status' => $exception->getCode()];
+            $response = response()->json($exception->getCode());
         }
 
-        return $result;
+        return $response;
     }
 
     public function removeFriend(int $id)
@@ -113,11 +131,12 @@ class FriendController extends Controller
             $user = Auth::user();
             $friend = User::findOrFail($id);
             $user->unfriend($friend);
-            $result = ['status' => 200];
+
+            $response = response()->json(200);
         } catch (\Exception $exception) {
-            $result = ['status' => $exception->getCode()];
+            $response = response()->json($exception->getCode());
         }
 
-        return $result;
+        return $response;
     }
 }

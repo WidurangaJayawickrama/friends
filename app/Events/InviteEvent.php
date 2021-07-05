@@ -12,7 +12,7 @@ class InviteEvent
 {
     use Dispatchable, SerializesModels;
 
-    public $user;
+    public $email;
 
 
     /**
@@ -20,11 +20,8 @@ class InviteEvent
      *
      * @return void
      */
-    public function __construct(User $user)
+    public function __construct($email)
     {
-        $this->user = $user;
-
+        $this->email = $email;
     }
-
-
 }

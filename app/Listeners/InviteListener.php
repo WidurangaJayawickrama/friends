@@ -2,6 +2,7 @@
 
 
 namespace App\Listeners;
+
 use App\Events\InviteEvent;
 use App\Mail\InviteMail;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,8 +16,8 @@ class InviteListener implements ShouldQueue
 
     public function handle(InviteEvent $event)
     {
-        Mail::to($event->user->email)
-            ->send(new InviteMail($event->user));
+        Mail::to($event->email)
+            ->send(new InviteMail());
     }
 
 }

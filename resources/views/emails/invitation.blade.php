@@ -371,7 +371,7 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td>
-                                        <p>Hi {{$user->first_name}},</p>
+                                        <p>Hi Friend,</p>
                                         <p><a href="{{$url}}" target="_blank">Please click here</a></p>
                                         <p>Good luck!.</p>
                                     </td>

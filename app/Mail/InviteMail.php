@@ -25,9 +25,8 @@ class InviteMail extends Mailable
      *
      * @return void
      */
-    public function __construct(User $user)
+    public function __construct()
     {
-        $this->user = $user;
         $this->url = URL::temporarySignedRoute(
             'friends.accept', now()->addMinutes(30), ['id' =>Auth::user()->id]
         );

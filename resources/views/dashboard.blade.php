@@ -32,12 +32,11 @@
                 if (result.isConfirmed) {
                     axios.post(url)
                         .then(function (response) {
-                            if (response.data.status == 200) {
-                                $('#' + id).remove();
+                            if (response.status == 200) {
+                                $('#friend_' + id).remove();
                             } else {
                                 Swal.fire(
                                     'Good job!',
-                                    response.data.message,
                                     'error'
                                 )
                             }
@@ -62,122 +61,103 @@
             })
         }
 
-        function invite(url) {
-            axios.post(url)
+
+        function action(url, id) {
+            axios.get(url)
                 .then(function (response) {
-                    if (response.data.status == 200) {
-                        Swal.fire(
-                            'Good job!',
-                            response.data.message,
-                            response.data.type,
-                        )
-                    } else {
-                        Swal.fire(
-                            'Good job!',
-                            response.data.message,
-                            response.data.type,
-                        )
-                    }
+                    // handle success
+                    console.log(response);
                 })
                 .catch(function (error) {
-                    Swal.fire(
-                        'Good job!',
-                        'Something went wrong!',
-                        'error'
-                    )
-                });
+                    // handle error
+                    console.log(error);
+                })
+                .then(function () {
+                    // always executed
+                })
         }
 
-        function accepts(url, id){
-            axios.post(url)
-                .then(function (response) {
-                    if (response.data.status == 200) {
-                        $('#' + id).remove();
-                    } else {
-                        // Swal.fire(
-                        //     'Good job!',
-                        //     response.data.message,
-                        //     response.data.type,
-                        // )
-                    }
-                })
-                .catch(function (error) {
-                    Swal.fire(
-                        'Good job!',
-                        'Something went wrong!',
-                        'error'
-                    )
-                });
-        }
     </script>
 @endsection
 
 <x-app-layout>
     <x-slot name="header">
-        {{--        <h2 class="font-semibold text-xl text-gray-800 leading-tight">--}}
-        {{--            {{ __('Dashboard') }}--}}
-        {{--        </h2>--}}
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl grid grid-cols-4 gap-16 mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white col-span-2 overflow-hidden shadow-sm sm:rounded-lg">
+        <div class="max-w-7xl grid grid-cols-3 gap-16 mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white col-span-1 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     Friend List
+                    <form method="get" action="{{route('dashboard')}}"><input type="text" name="query">
+                        <button type="submit">search</button>
+                    </form>
                 </div>
-                <table class="border-separate border border-green-800">
-                    <tbody>
+                <div class="grid gap-4 p-6">
+
                     @foreach($friendList as $friend)
-                        <tr id="{{$friend->id}}">
-                            <td class="border border-green-600">{{$friend->first_name.' '.$friend->last_name}}</td>
-                            <td class="border border-green-600">
-                                <a href="javascript:void(0)"
-                                   onclick="deleted('{{route('friends.remove',$friend->id)}}',{{$friend->id}})"
-                                   class="btn btn-danger btn-sm">Unfriend</a>
-                            </td>
-                        </tr>
+                        <div class="flex items-center" id="friend_{{$friend->id}}">
+                            <div class="">{{$friend->first_name.' '.$friend->last_name}}</div>
+                            <button class="text-sm bg-gray-400 text-white px-3 py-1 hover:bg-gray-500 rounded ml-6"
+                                    onclick="deleted('{{route('friends.remove',$friend->id)}}',{{$friend->id}})">
+                                Unfriend
+                            </button>
+                        </div>
                     @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="bg-white col-span-1 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
-                    You're logged in!
                 </div>
-                <table class="border-separate border border-green-800">
-                    <tbody>
-                    @foreach($friendRequestList as $friendRequest)
-                        <tr id="{{$friendRequest->id}}">
-                            <td class="border border-green-600">{{$friendRequest->first_name.' '.$friendRequest->last_name}}</td>
-                            <td class="border border-green-600">
-                                <a href="javascript:void(0)"
-                                   onclick="accepts('{{route('friends.accept',$friendRequest->id)}}',{{$friendRequest->id}})"
-                                   class="btn btn-danger btn-sm">Accept</a>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+                {{ $friendList->links() }}
             </div>
 
-            <div class="bg-white col-span-1 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white col-span-2 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     You're logged in!
                 </div>
-                <table class="border-separate border border-green-800">
-                    <tbody>
-                    @foreach($userList as $user)
-                        <tr id="{{$user->id}}">
-                            <td class="border border-green-600">{{$user->first_name.' '.$user->last_name}}</td>
-                            <td class="border border-green-600">
-                                <a href="javascript:void(0)"
-                                   onclick="invite('{{route('friends.request',$user->id)}}')"
-                                   class="btn btn-danger btn-sm">Invite Friend</a>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
+
+                <div class="py-12">
+                    <div class="max-w-7xl grid grid-cols-2 gap-16 mx-auto sm:px-6 lg:px-8">
+                        <div class="bg-white col-span-1 overflow-hidden shadow-sm sm:rounded-lg">
+                            <div class="grid gap-4 p-6">
+                                @foreach($friendRequestList as $friendRequest)
+                                    <div class="flex items-center" id="request_{{$friendRequest->id}}">
+                                        <div class="">{{$friendRequest->first_name.' '.$friendRequest->last_name}}</div>
+                                        <button
+                                            class="text-sm bg-gray-400 text-white px-3 py-1 hover:bg-gray-500 rounded ml-6"
+                                            onclick="action('{{route('friends.accept',$friendRequest->id)}}',{{$friendRequest->id}})">
+                                            Accept
+                                        </button>
+                                        <button
+                                            class="text-sm bg-gray-400 text-white px-3 py-1 hover:bg-gray-500 rounded ml-6"
+                                            onclick="action('{{route('friends.deny',$friendRequest->id)}}',{{$friendRequest->id}})">
+                                            Reject
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="bg-white col-span-1 overflow-hidden shadow-sm sm:rounded-lg">
+                            <div class="grid gap-4 p-6">
+                                <form action="{{route('friends.invite')}}" method="post">
+                                    @csrf
+                                    <div class="flex items-center">
+                                        <div class="">
+                                            <input type="text" name="email">
+                                            @error('email')
+                                            <div class="alert alert-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <button type="submit"
+                                                class="text-sm bg-gray-400 text-white px-3 py-1 hover:bg-gray-500 rounded ml-6">
+                                            Sent Invitation
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
